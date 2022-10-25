@@ -2,13 +2,14 @@ extends KinematicBody
 
 export var player_mass := 0.1
 
-var walk_speed := 7.0
-var sprint_speed := 10.0
-var crouch_speed := 4.0
+export var walk_speed := 7.0
+export var sprint_speed := 10.0
+export var crouch_speed := 4.0
 export var accelleration_weight := 0.5
+export var float_accelleration_weight := 0.001
 export var decelleration_weight := 0.5
 export var jump_force := 10
-export var gravity: Vector3 = Vector3(0, -9.8, 0) * player_mass
+export var gravity: Vector3 = Vector3(0, -9.8, 0)
 
 export var mouse_sensitivity := 0.03
 
@@ -70,8 +71,11 @@ func _handle_horizontal_movement(desired_velocity: Vector3, delta: float) -> Vec
 	var desired_direction := _get_horizontal_movement()
 	var desired_speed = _get_desired_speed()
 	
-	if floor_detector.is_on_floor():
-		desired_velocity = _accellerate(desired_velocity, desired_direction, desired_speed, delta)
+	var is_on_floor := floor_detector.is_on_floor()
+	
+	desired_velocity = _accellerate(desired_velocity, desired_direction, desired_speed, is_on_floor)
+	
+	if is_on_floor:
 		desired_velocity = _decellerate(desired_velocity, desired_direction, desired_speed, delta)
 	
 	return desired_velocity
@@ -81,17 +85,19 @@ func _accellerate(
 	desired_velocity: Vector3,
 	desired_direction: Vector3, 
 	desired_speed: float,
-	delta: float
+	is_on_floor: bool
 ) -> Vector3:
+	var lerp_weight = accelleration_weight if is_on_floor else float_accelleration_weight
+	
 	if desired_direction.x > 0:
-		desired_velocity.x = lerp(desired_velocity.x, desired_speed, accelleration_weight)
+		desired_velocity.x = lerp(desired_velocity.x, desired_speed, lerp_weight)
 	elif desired_direction.x < 0:
-		desired_velocity.x = lerp(desired_velocity.x, -desired_speed, accelleration_weight)
+		desired_velocity.x = lerp(desired_velocity.x, -desired_speed, lerp_weight)
 		
 	if desired_direction.z > 0:
-		desired_velocity.z = lerp(desired_velocity.z, desired_speed, accelleration_weight)
+		desired_velocity.z = lerp(desired_velocity.z, desired_speed, lerp_weight)
 	elif desired_direction.z < 0:
-		desired_velocity.z = lerp(desired_velocity.z, -desired_speed, accelleration_weight)
+		desired_velocity.z = lerp(desired_velocity.z, -desired_speed, lerp_weight)
 	
 	return desired_velocity
 
@@ -143,4 +149,4 @@ func _handle_jumping(desired_velocity: Vector3) -> Vector3:
 
 
 func _apply_gravity(vec: Vector3) -> Vector3:
-	return vec + gravity
+	return vec + gravity * player_mass
